@@ -388,9 +388,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error('Gagal mengambil data video dari kanal YouTube');
             }
-            return await response.json();
+            const videos = await response.json();
+            if (Array.isArray(videos) && videos.length > 0) return videos;
         } catch (error) {
-            console.error('Error fetching YouTube videos:', error);
+            console.warn('API video tidak tersedia, mencoba data statis:', error);
+        }
+
+        try {
+            const response = await fetch('data/videos.json');
+            if (!response.ok) throw new Error('Data video statis tidak tersedia');
+            const data = await response.json();
+            return Array.isArray(data) ? data : (data.videos || []);
+        } catch (error) {
+            console.error('Error fetching video data:', error);
             return [];
         }
     }
@@ -413,15 +423,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const image = video.thumbnail || `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`;
             const title = video.title || 'Video Nurul Ulum';
             const videoId = video.videoId || '';
+            const videoUrl = video.videoUrl || '';
+            const action = videoId
+                ? `data-video-id="${videoId}"`
+                : `data-video-url="${videoUrl}"`;
+            const media = videoId
+                ? `<img src="${image}" alt="${title}" class="w-full h-52 object-cover transition duration-300 group-hover:scale-105" loading="lazy" />`
+                : `<div class="flex h-52 items-center justify-center bg-primary text-on-primary"><span class="material-symbols-outlined text-6xl">play_circle</span></div>`;
 
             return `
-                <button type="button" data-video-id="${videoId}" class="youtube-video-trigger group block w-full text-left rounded-2xl overflow-hidden border border-outline-variant/30 bg-surface-container-lowest shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <button type="button" ${action} class="youtube-video-trigger group block w-full text-left rounded-2xl overflow-hidden border border-outline-variant/30 bg-surface-container-lowest shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                     <div class="relative overflow-hidden">
-                        <img src="${image}" alt="${title}" class="w-full h-52 object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
+                        ${media}
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                         <span class="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/65 text-white px-2 py-1 text-[10px] font-medium">
                             <span class="material-symbols-outlined text-[12px]">play_circle</span>
-                            YouTube
+                            ${videoId ? 'YouTube' : 'Dokumentasi'}
                         </span>
                     </div>
                     <div class="p-4">
@@ -435,7 +452,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.youtube-video-trigger').forEach(button => {
             button.addEventListener('click', () => {
                 const videoId = button.getAttribute('data-video-id');
+                const videoUrl = button.getAttribute('data-video-url');
                 if (videoId) openYoutubeVideo(videoId);
+                else if (videoUrl) window.open(videoUrl, '_blank', 'noopener');
             });
         });
     }
