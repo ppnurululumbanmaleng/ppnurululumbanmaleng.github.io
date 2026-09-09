@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const forceBuild = process.argv.includes('--force');
 
 const sharedHead = (title) => `<!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
@@ -681,6 +682,11 @@ const pageConfigs = [
 ];
 
 for (const cfg of pageConfigs) {
+    if (fs.existsSync(cfg.outFile) && !forceBuild) {
+        console.warn(`Skipped ${cfg.outFile}: file already exists. Use "node build.js --force" only when you intend to replace its layout.`);
+        continue;
+    }
+
     const rawFilePath = path.join('raw', cfg.rawFile);
     if (!fs.existsSync(rawFilePath)) {
         console.warn('Warning: File does not exist yet:', rawFilePath);
